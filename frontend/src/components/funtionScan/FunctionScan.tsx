@@ -1,30 +1,50 @@
 import { useEffect, useState, useRef } from "react";
-import productsDB from "../../types/ProductDB";
 import Product from "../../types/Product";
 import PurchaseTicket from "../PurchaseTicket/PurchaseTicket";
+import axios from "axios";
 
 export default function FunctionScan() {
   const [scannedCode, setScannedCode] = useState("");
   const [cart, setCart] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [showTicket, setShowTicket] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const fetchProducts = async () => {
+    try {
+      const res = await axios.get<Product[]>("http://localhost:3001/products");
+      setProducts(res.data);
+    } catch (error) {
+      console.error("Error al traer productos:", error);
+      alert("No se pudieron cargar los productos");
+    }
+  };
 
   useEffect(() => {
+    fetchProducts();
     inputRef.current?.focus();
-  }, [cart]);
+  }, []);
 
   const handleScan = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
-    if (value.length >= 13) {
-      const product = productsDB.find((p) => p.code === value);
-      if (product) {
-        setCart((prev) => [...prev, product]);
-      } else {
-        alert("Producto no encontrado");
+    setScannedCode(value); // Solo guarda el código
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      const value = scannedCode.trim();
+      if (value.length >= 2) {
+        const product = products.find((p) => p.code === value);
+        if (product) {
+          setCart((prev) => [...prev, product]);
+          setErrorMessage(""); // Limpia errores si encuentra
+        } else {
+          setErrorMessage("Producto no encontrado"); // 👈 Seteamos el error
+          setTimeout(() => setErrorMessage(""), 2000); // Después de 2 segundos se borra
+        }
+        setScannedCode(""); // Limpia el input
       }
-      setScannedCode("");
-    } else {
-      setScannedCode(value);
     }
   };
 
@@ -33,14 +53,20 @@ export default function FunctionScan() {
   return (
     <div className="p-4 max-w-xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Mini Mercado</h1>
+
       <input
         ref={inputRef}
         type="text"
         value={scannedCode}
         onChange={handleScan}
-        className="border p-2 w-full mb-4"
+        onKeyDown={handleKeyDown} // 👈 Agregado acá
+        className="border p-2 w-full mb-2"
         placeholder="Escaneá un producto..."
       />
+
+      {errorMessage && (
+        <div className="text-red-500 text-sm mb-2">{errorMessage}</div> // 👈 MOSTRAMOS el error
+      )}
 
       <ul className="mb-4">
         {cart.map((item, index) => (
@@ -64,6 +90,7 @@ export default function FunctionScan() {
           </li>
         ))}
       </ul>
+
       {!showTicket ? (
         <button
           onClick={() => setShowTicket(true)}

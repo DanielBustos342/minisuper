@@ -3,7 +3,9 @@ import Product from "../models/Product";
 
 export const getProducts = async (_req: Request, res: Response) => {
   try {
-    const products = await Product.findAll();
+    const products = await Product.findAll({
+      attributes: ["code", "name", "price"],
+    });
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: "Error al obtener productos" });
