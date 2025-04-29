@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Product from "../../types/Product";
-import FunctionAdd from "../functionAdd/FunctionAdd";
+// import FunctionAdd from "../functionAdd/FunctionAdd";
 import FunctionProductsList from "../functionProductsList/FunctionProductsList";
 
 export default function ProductPage() {
@@ -13,9 +13,9 @@ export default function ProductPage() {
     });
   }, []);
 
-  const handleAddProduct = (product: Product) => {
-    setProducts((prev) => [...prev, product]);
-  };
+  // const handleAddProduct = (product: Product) => {
+  //   setProducts((prev) => [...prev, product]);
+  // };
 
   const handleDeleteProduct = async (code: string) => {
     try {
@@ -28,7 +28,7 @@ export default function ProductPage() {
 
   return (
     <div className="p-4 max-w-md mx-auto">
-      <FunctionAdd onAddProduct={handleAddProduct} />
+      {/* <FunctionAdd onAddProduct={handleAddProduct} /> */}
       <FunctionProductsList
         products={products}
         handleDeleteProduct={handleDeleteProduct}
