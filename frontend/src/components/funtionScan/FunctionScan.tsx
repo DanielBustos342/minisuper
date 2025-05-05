@@ -59,37 +59,46 @@ export default function FunctionScan() {
         type="text"
         value={scannedCode}
         onChange={handleScan}
-        onKeyDown={handleKeyDown} // 👈 Agregado acá
+        onKeyDown={handleKeyDown}
         className="border p-2 w-full mb-2"
         placeholder="Escaneá un producto..."
       />
 
       {errorMessage && (
-        <div className="text-red-500 text-sm mb-2">{errorMessage}</div> // 👈 MOSTRAMOS el error
+        <div className="text-red-500 text-sm mb-2">{errorMessage}</div>
       )}
 
-      <ul className="mb-4">
-        {cart.map((item, index) => (
-          <li
-            key={index}
-            className="flex justify-between items-center border-b py-1"
-          >
-            <div>
-              <span>{item.name}</span> - <span>${item.price}</span>
-            </div>
-            <button
-              onClick={() => {
-                const newCart = [...cart];
-                newCart.splice(index, 1);
-                setCart(newCart);
-              }}
-              className="text-red-500 hover:underline ml-2"
-            >
-              Eliminar
-            </button>
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto mb-4">
+        <table className="min-w-full border border-gray-300 text-left">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="py-2 px-4 border-b">Producto</th>
+              <th className="py-2 px-4 border-b">Precio</th>
+              <th className="py-2 px-4 border-b">Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {cart.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50">
+                <td className="py-2 px-4 border-b">{item.name}</td>
+                <td className="py-2 px-4 border-b">${item.price}</td>
+                <td className="py-2 px-4 border-b">
+                  <button
+                    onClick={() => {
+                      const newCart = [...cart];
+                      newCart.splice(index, 1);
+                      setCart(newCart);
+                    }}
+                    className="text-red-500 hover:underline"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {!showTicket ? (
         <button
@@ -108,7 +117,8 @@ export default function FunctionScan() {
           }}
         />
       )}
-      <div className="text-right font-bold text-lg">Total: ${total}</div>
+
+      <div className="text-right font-bold text-lg mt-2">Total: ${total}</div>
     </div>
   );
 }
