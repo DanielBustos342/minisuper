@@ -2,10 +2,28 @@ import { useEffect, useState, useRef } from "react";
 import Product from "../../types/Product";
 import PurchaseTicket from "../PurchaseTicket/PurchaseTicket";
 import axios from "axios";
+import {
+  Button,
+  Container,
+  Input,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Dialog,
+  DialogContent,
+  TextField,
+} from "@mui/material";
 
 export default function FunctionScan() {
   const [scannedCode, setScannedCode] = useState("");
-  const [cart, setCart] = useState<Product[]>([]);
+  const [cart, setCart] = useState<{ product: Product; quantity: number }[]>(
+    []
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const [showTicket, setShowTicket] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
@@ -28,7 +46,7 @@ export default function FunctionScan() {
 
   const handleScan = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.trim();
-    setScannedCode(value); // Solo guarda el código
+    setScannedCode(value);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -37,88 +55,193 @@ export default function FunctionScan() {
       if (value.length >= 2) {
         const product = products.find((p) => p.code === value);
         if (product) {
-          setCart((prev) => [...prev, product]);
-          setErrorMessage(""); // Limpia errores si encuentra
+          const existingIndex = cart.findIndex(
+            (item) => item.product.code === value
+          );
+
+          if (existingIndex !== -1) {
+            const newCart = [...cart];
+            newCart[existingIndex].quantity += 1;
+            setCart(newCart);
+          } else {
+            setCart((prev) => [...prev, { product, quantity: 1 }]);
+          }
+
+          setErrorMessage("");
         } else {
-          setErrorMessage("Producto no encontrado"); // 👈 Seteamos el error
-          setTimeout(() => setErrorMessage(""), 2000); // Después de 2 segundos se borra
+          setErrorMessage("Producto no encontrado");
+          setTimeout(() => setErrorMessage(""), 2000);
         }
-        setScannedCode(""); // Limpia el input
+        setScannedCode("");
       }
     }
   };
 
-  const total = cart.reduce((sum, item) => sum + item.price, 0);
+  const handleReset = () => {
+    setCart([]);
+    setShowTicket(false);
+  };
+
+  const handleQuantityChange = (index: number, newQuantity: number) => {
+    const updatedCart = [...cart];
+    updatedCart[index].quantity = newQuantity;
+    setCart(updatedCart);
+  };
+
+  const total = cart.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
+
+  const handleFinishPurchase = async () => {
+    try {
+      const purchaseData = {
+        items: cart.map((item) => ({
+          productId: item.product.code,
+          quantity: item.quantity,
+        })),
+        total,
+      };
+
+      await axios.post("http://localhost:3001/purchases", purchaseData);
+
+      setShowTicket(true); // mostrar el ticket solo si se guardó correctamente
+    } catch (error) {
+      console.error("Error al guardar la compra:", error);
+      alert("No se pudo guardar la compra");
+    }
+  };
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Mini Mercado</h1>
+    <Container
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        height: "100vh",
+        width: "60vw",
+        mt: -4,
+        p: 4,
+        border: "2px solid blue",
+        background: "lightgray",
+        borderRadius: "20px",
+      }}
+    >
+      <Typography variant="h3" gutterBottom>
+        Mini Mercado
+      </Typography>
 
-      <input
+      <Input
+        sx={{ m: 1, p: 1, width: "300px" }}
         ref={inputRef}
         type="text"
         value={scannedCode}
         onChange={handleScan}
         onKeyDown={handleKeyDown}
-        className="border p-2 w-full mb-2"
         placeholder="Escaneá un producto..."
       />
 
+      <Typography
+        sx={{
+          m: 1,
+          p: 2,
+          width: "300px",
+          backgroundColor: "green",
+          color: "white",
+          borderRadius: "10px",
+          fontSize: "20px",
+          textAlign: "center",
+        }}
+      >
+        Total: ${total.toFixed(2)}
+      </Typography>
+
       {errorMessage && (
-        <div className="text-red-500 text-sm mb-2">{errorMessage}</div>
+        <Typography color="error" sx={{ mb: 2 }}>
+          {errorMessage}
+        </Typography>
       )}
 
-      <div className="overflow-x-auto mb-4">
-        <table className="min-w-full border border-gray-300 text-left">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="py-2 px-4 border-b">Producto</th>
-              <th className="py-2 px-4 border-b">Precio</th>
-              <th className="py-2 px-4 border-b">Acción</th>
-            </tr>
-          </thead>
-          <tbody>
+      <TableContainer component={Paper} sx={{ mb: 4, width: "100%" }}>
+        <Table>
+          <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+            <TableRow>
+              <TableCell>
+                <strong>Producto</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Precio</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Cantidad</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Subtotal</strong>
+              </TableCell>
+              <TableCell>
+                <strong>Acción</strong>
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {cart.map((item, index) => (
-              <tr key={index} className="hover:bg-gray-50">
-                <td className="py-2 px-4 border-b">{item.name}</td>
-                <td className="py-2 px-4 border-b">${item.price}</td>
-                <td className="py-2 px-4 border-b">
-                  <button
+              <TableRow key={index} hover>
+                <TableCell>{item.product.name}</TableCell>
+                <TableCell>${item.product.price.toFixed(2)}</TableCell>
+                <TableCell>
+                  <TextField
+                    type="number"
+                    inputProps={{ min: 1 }}
+                    value={item.quantity}
+                    onChange={(e) =>
+                      handleQuantityChange(index, Math.max(1, +e.target.value))
+                    }
+                    size="small"
+                    sx={{ width: "70px" }}
+                  />
+                </TableCell>
+                <TableCell>
+                  ${(item.product.price * item.quantity).toFixed(2)}
+                </TableCell>
+                <TableCell>
+                  <Button
                     onClick={() => {
                       const newCart = [...cart];
                       newCart.splice(index, 1);
                       setCart(newCart);
                     }}
-                    className="text-red-500 hover:underline"
+                    variant="outlined"
+                    color="error"
+                    size="small"
                   >
                     Eliminar
-                  </button>
-                </td>
-              </tr>
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {!showTicket ? (
-        <button
-          onClick={() => setShowTicket(true)}
-          className="bg-green-500 text-white px-4 py-2 rounded mt-4"
-        >
-          Finalizar compra
-        </button>
-      ) : (
-        <PurchaseTicket
-          cart={cart}
-          total={total}
-          onReset={() => {
-            setCart([]);
-            setShowTicket(false);
-          }}
-        />
-      )}
+      <Button
+        onClick={handleFinishPurchase}
+        variant="contained"
+        color="success"
+        sx={{ px: 4, py: 1, mt: 2, borderRadius: "10px" }}
+      >
+        Finalizar compra
+      </Button>
 
-      <div className="text-right font-bold text-lg mt-2">Total: ${total}</div>
-    </div>
+      <Dialog
+        open={showTicket}
+        onClose={() => setShowTicket(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogContent dividers>
+          <PurchaseTicket cart={cart} total={total} onReset={handleReset} />
+        </DialogContent>
+      </Dialog>
+    </Container>
   );
 }
